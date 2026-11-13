@@ -38,6 +38,11 @@ android {
     }
 }
 
+// Offline builds remain usable when CI has no Firebase client configuration.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17

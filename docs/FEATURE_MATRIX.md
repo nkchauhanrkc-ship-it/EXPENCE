@@ -6,7 +6,7 @@ Implemented means source exists; it does not imply device verification.
 
 | Module | Implemented | Tested | Pending / blocked |
 |---|---|---|---|
-| 1 Authentication | Local use without login | Pending device test | Onboarding, Google login, account controls; separate Firebase configuration needed |
+| 1 Authentication | Local use; optional Google/Firebase sign-in screen, persisted Firebase identity, sign-out confirmation and offline error recovery; project guard | Analysis passed; automated screen tests and Android build results in TEST_REPORT.md | Real Google login/device validation, onboarding and account-owned local data partitioning before sync |
 | 2 Dashboard | Local available balance, account balances, monthly budget, recent entries, loading/error/empty states | Pending | Income/savings summaries, periods, charts, rearrangement, bills/debts/goals |
 | 3 Transactions | SQLite add/edit/delete, income/expense/transfer, amount/date/account/category/notes, simple search, delete confirmation | Automated checks in progress | Duplicate/template/recurring/split/refund UI, calculator, advanced filters, time picker, attachments |
 | 4 Categories | Built-in and custom categories; edit, search management list, archive/restore; historical references preserved | Repository tests passed; screen test validation recorded in TEST_REPORT.md | Subcategories, icons/colors, ordering, searchable transaction picker |

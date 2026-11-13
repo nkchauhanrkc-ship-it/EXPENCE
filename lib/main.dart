@@ -4,6 +4,7 @@ import 'core/finance.dart';
 import 'core/store.dart';
 import 'management.dart';
 import 'attachments.dart';
+import 'account_connection.dart';
 
 void main() { WidgetsFlutterBinding.ensureInitialized(); runApp(const ExpenceApp()); }
 String money(int n)=>'${n<0?'-':''}₹${n.abs()~/100}.${(n.abs()%100).toString().padLeft(2,'0')}';
@@ -74,7 +75,7 @@ class _HomeState extends State<Home> {
     final now=DateTime.now();
     final spending=ledger?.expenses(DateTime(now.year,now.month),DateTime(now.year,now.month+1))??0;
     final total=accounts.fold(0,(int n,a)=>n+(ledger?.balance(a['id'] as String)??0));
-    return Scaffold(appBar:AppBar(title:const Text('RKC Expence'),actions:[IconButton(tooltip:'Refresh',onPressed:refresh,icon:const Icon(Icons.refresh))]),
+    return Scaffold(appBar:AppBar(title:const Text('RKC Expence'),actions:[IconButton(tooltip:'Account connection',onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>const AccountConnectionPage())),icon:const Icon(Icons.account_circle_outlined)),IconButton(tooltip:'Refresh',onPressed:refresh,icon:const Icon(Icons.refresh))]),
       floatingActionButton:FloatingActionButton.extended(onPressed:accounts.isEmpty?null:()=>edit(),icon:const Icon(Icons.add),label:const Text('Transaction')),
       body:RefreshIndicator(onRefresh:refresh,child:ListView(padding:EdgeInsets.fromLTRB(MediaQuery.sizeOf(context).width>900?80:16,16,MediaQuery.sizeOf(context).width>900?80:16,100),children:[
         const Text('YOUR MONEY, CLEARLY',style:TextStyle(letterSpacing:2)),const SizedBox(height:12),

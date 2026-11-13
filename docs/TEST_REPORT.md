@@ -1,5 +1,9 @@
 # Validation evidence — initial development checkpoint
 
+## Optional Google account connection checkpoint
+
+`flutter analyze` passed with no issues and `flutter test` passed all 12 tests. The account-connection screen test uses an injected fake service: connection success, cancellation of sign-out, confirmed sign-out and connection failure with offline access retained. It is not a real Google/Firebase authentication test. Real authentication, token refresh, reconnection and process restart remain unverified on Android. No phone was detected by adb during this checkpoint. The verified local Firebase configuration matches expense-8468, com.rkc.expence, the local testing SHA-1 and includes Android/web OAuth clients. Firebase initialization is lazy on entering Account connection; local tracking can run without it. Financial data is not synchronized or assigned to the authenticated account yet.
+
 ## Bill attachment checkpoint
 
 Analysis passed and all 11 tests passed. The new attachment test verifies the v1-to-v3 migration, multiple locally stored bills, byte retrieval, replacement without duplication, invalid-content rejection, unknown transaction rejection, removal, cascading deletion and unchanged financial totals. Android camera/gallery/PDF picker behavior, permission denial and interrupted-picker recovery are not yet device-tested. The new source has not yet been installed on the user's phone.

@@ -1,6 +1,8 @@
 # Firebase setup required before cloud features can work
 
-Cloud features are not implemented yet. Local finance tracking does not require Firebase.
+Google sign-in source is implemented for Android, using the verified expense-8468 configuration. Local finance tracking does not require login. Firestore synchronization and family sharing remain unimplemented. Signing in does not upload or assign the device's records to an account.
+
+The local Android build reads android/app/google-services.json, excluded from Git. The Google Services Gradle plugin is applied only when that file exists. CI builds without this file support local use but cannot authenticate. CI Google sign-in additionally requires a stable signing key and its registered Firebase fingerprints; ephemeral runner debug keys will not match the local testing key. No CI secrets or production signing keys have been configured.
 
 1. Create a separate Firebase project named RKC Expence. Keep billing disabled (Spark).
 2. Register Android application `com.rkc.expence`.
