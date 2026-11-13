@@ -16,7 +16,7 @@ Implemented means source exists; it does not imply device verification.
 | 8 Savings | Allocation exclusion from spending/balance changes in domain core only | Automated checks in progress | Goals, withdrawals, contributions, account links, reminders/history |
 | 9 Calendar | None | Untested | Entire module |
 | 10 Reports | Half-month date-range domain helper | Automated checks in progress | Report UI, charts, all periods, Excel/PDF/share, reconciliations |
-| 11 Attachments | None; no camera/storage permission requested | Untested | Entire module |
+| 11 Attachments | Camera/gallery/file selection, multiple JPEG/PNG/PDF bills, local SQLite storage, image viewing, external PDF viewing, replace/remove, 20 MB per-file limit | Storage/migration/replacement/removal/financial invariants passed | Android camera/picker/denied-permission and process-death recovery tests; backup integration; cloud attachment backup remains blocked pending approval |
 | 12 Family | None | Untested | Entire module; Firebase configuration required |
 | 13 SMS | No SMS access or permission requested | Untested | Opt-in user-paste parsing/confirmation workflow and policy documentation |
 | 14 Themes | Initial Navy palette, INR and DD/MM/YYYY defaults | Untested | All 11 selectable themes, persistence, appearance/currency/date settings |

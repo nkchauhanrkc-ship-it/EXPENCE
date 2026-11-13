@@ -2,6 +2,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'finance.dart';
+import 'dart:typed_data';
 
 const categories = ['Groceries','Vegetables','Fruits','Food','Restaurant','Canteen','Tea/Coffee','Shopping','Clothes','Mall','Household','Rent','Maintenance','Electricity','Water','Internet','Mobile Recharge','LPG for Home','Fuel/Petrol','Diesel','CNG for Car','FASTag','Parking','Vehicle Maintenance','Public Transport','Travel','Education','School/College Fees','Hospital','Doctor','Medicine','Insurance','Entertainment','Gifts','Personal Care','Family','Miscellaneous','Salary','Business','Interest','Refund','Gift','Other Income'];
 
@@ -9,16 +10,42 @@ class FinanceStore {
   final Database db;
   FinanceStore(this.db);
   static Future<FinanceStore> open() async => FinanceStore(await openDatabase(
-    p.join(await getDatabasesPath(),'rkc_expence.db'),version:2,
+    p.join(await getDatabasesPath(),'rkc_expence.db'),version:3,
     onConfigure:(db)=>db.execute('PRAGMA foreign_keys = ON'),
     onCreate:(db,version) async {await migrateV1(db,1);await migrate(db,1,version);},
     onUpgrade:migrate));
 
   static Future<void> migrate(Database db,int old,int next) async {
+    if(next>3) throw StateError('Unsupported database version.');
     if(old<2 && next>=2) {
       await db.execute('CREATE TABLE budgets(month TEXT NOT NULL, category_id TEXT NOT NULL DEFAULT \'\', amount INTEGER NOT NULL CHECK(amount > 0), PRIMARY KEY(month,category_id))');
     }
+    if(old<3 && next>=3) {
+      await db.execute('CREATE TABLE attachments(id TEXT PRIMARY KEY, entry_id TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE, name TEXT NOT NULL, mime TEXT NOT NULL, data BLOB NOT NULL, created_at TEXT NOT NULL)');
+      await db.execute('CREATE INDEX attachments_entry ON attachments(entry_id)');
+    }
   }
+  Future<List<Map<String,Object?>>> attachments(String entryId)=>db.query('attachments',columns:['id','name','mime','created_at'],where:'entry_id = ?',whereArgs:[entryId],orderBy:'created_at');
+  Future<Uint8List> attachmentData(String id) async {
+    final rows=await db.query('attachments',columns:['data'],where:'id = ?',whereArgs:[id]);
+    if(rows.isEmpty) throw StateError('Attachment no longer exists.');
+    return rows.single['data'] as Uint8List;
+  }
+  Future<void> attach(String entryId,String name,String mime,Uint8List bytes,{String? replaceId}) async {
+    if(bytes.isEmpty || bytes.length>20*1024*1024) throw ArgumentError('Choose a non-empty file up to 20 MB.');
+    final pdf=bytes.length>=5 && String.fromCharCodes(bytes.take(5))=='%PDF-';
+    final jpeg=bytes.length>=3 && bytes[0]==255 && bytes[1]==216 && bytes[2]==255;
+    final png=bytes.length>=8 && bytes[0]==137 && bytes[1]==80 && bytes[2]==78 && bytes[3]==71;
+    if(!(mime=='application/pdf'&&pdf || mime=='image/jpeg'&&jpeg || mime=='image/png'&&png)) throw ArgumentError('Use a valid JPEG, PNG or PDF file.');
+    if(name.trim().isEmpty || name.length>255) throw ArgumentError('Invalid attachment name.');
+    await db.transaction((txn) async {
+      if((await txn.query('entries',columns:['id'],where:'id = ?',whereArgs:[entryId])).isEmpty) throw ArgumentError('Save the transaction first.');
+      final row={'entry_id':entryId,'name':name,'mime':mime,'data':bytes,'created_at':DateTime.now().toUtc().toIso8601String()};
+      if(replaceId==null) {await txn.insert('attachments',{'id':const Uuid().v4(),...row});}
+      else if(await txn.update('attachments',row,where:'id = ? AND entry_id = ?',whereArgs:[replaceId,entryId])!=1) {throw StateError('Attachment no longer exists.');}
+    });
+  }
+  Future<void> removeAttachment(String id) async {await db.delete('attachments',where:'id = ?',whereArgs:[id]);}
   static String monthKey(DateTime month)=>'${month.year}-${month.month.toString().padLeft(2,'0')}';
   Future<int> budget(DateTime month,{String categoryId=''}) async {
     final rows=await db.query('budgets',where:'month = ? AND category_id = ?',whereArgs:[monthKey(month),categoryId]);

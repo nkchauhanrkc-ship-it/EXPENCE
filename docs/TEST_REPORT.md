@@ -1,5 +1,11 @@
 # Validation evidence — initial development checkpoint
 
+## Bill attachment checkpoint
+
+Analysis passed and all 11 tests passed. The new attachment test verifies the v1-to-v3 migration, multiple locally stored bills, byte retrieval, replacement without duplication, invalid-content rejection, unknown transaction rejection, removal, cascading deletion and unchanged financial totals. Android camera/gallery/PDF picker behavior, permission denial and interrupted-picker recovery are not yet device-tested. The new source has not yet been installed on the user's phone.
+
+Firebase project ID supplied by the user: expense-8468. The existing Downloads/google-services.json was inspected and belongs to task-8468 / com.rkc.task; it was not copied into this app. Correct configuration for com.rkc.expence is required.
+
 ## Account and category management checkpoint
 
 All 10 automated tests passed after adding account/category management. Analysis passed with no issues. The interaction test now creates an account with an opening balance, confirms the dashboard total, creates a category, searches for it, archives it and restores it. Repository tests verify renamed records retain IDs, opening balances recalculate correctly, archives preserve financial history, new transactions reject archived references, old entries remain editable and restore permits new use. An earlier screen-test failure was caused by its empty-state assertion falling outside the lazy list viewport; the final test uses an explicit larger viewport. Phone/tablet accessibility testing is still pending.

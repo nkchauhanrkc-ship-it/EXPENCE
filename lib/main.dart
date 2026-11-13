@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import 'core/finance.dart';
 import 'core/store.dart';
 import 'management.dart';
+import 'attachments.dart';
 
 void main() { WidgetsFlutterBinding.ensureInitialized(); runApp(const ExpenceApp()); }
 String money(int n)=>'${n<0?'-':''}₹${n.abs()~/100}.${(n.abs()%100).toString().padLeft(2,'0')}';
@@ -100,6 +101,7 @@ class EntryEditor extends StatefulWidget {
   @override State<EntryEditor> createState()=>_EntryEditorState();
 }
 class _EntryEditorState extends State<EntryEditor> {
+  late final String entryId;
   final form=GlobalKey<FormState>();
   late final TextEditingController amount,notes;
   late String account;
@@ -109,6 +111,7 @@ class _EntryEditorState extends State<EntryEditor> {
   bool saving=false;
   @override void initState() {
     super.initState();final r=widget.row;
+    entryId=r?['id'] as String? ?? const Uuid().v4();
     amount=TextEditingController(text:r==null?'':'${(r['amount'] as int)~/100}.${((r['amount'] as int)%100).toString().padLeft(2,'0')}');
     notes=TextEditingController(text:r?['notes'] as String? ?? '');
     account=r?['account_id'] as String? ?? widget.accounts.first['id'] as String;
@@ -117,11 +120,12 @@ class _EntryEditorState extends State<EntryEditor> {
     date=r==null?DateTime.now():DateTime.parse(r['date'] as String);
   }
   @override void dispose() {amount.dispose();notes.dispose();super.dispose();}
-  Future<void> save() async {
+  Future<void> save({bool attach=false}) async {
     if(!form.currentState!.validate()) return;
     setState(() {saving=true;error=null;});
     try {
-      await widget.store.save(Posting(id:widget.row?['id'] as String? ?? const Uuid().v4(),kind:kind,amount:parseMinorUnits(amount.text.trim()),accountId:account,date:date,destinationId:kind==PostingKind.transfer?destination:null),categoryId:category,notes:notes.text);
+      await widget.store.save(Posting(id:entryId,kind:kind,amount:parseMinorUnits(amount.text.trim()),accountId:account,date:date,destinationId:kind==PostingKind.transfer?destination:null),categoryId:category,notes:notes.text);
+      if(attach && mounted) await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>AttachmentsPage(store:widget.store,entryId:entryId)));
       if(mounted) Navigator.pop(context);
     } catch(e) {if(mounted) setState(()=>error='$e');}
     finally {if(mounted) setState(()=>saving=false);}
@@ -135,5 +139,6 @@ class _EntryEditorState extends State<EntryEditor> {
     const SizedBox(height:16),OutlinedButton.icon(icon:const Icon(Icons.calendar_month),label:Text(dateLabel(date)),onPressed:()async {final d=await showDatePicker(context:context,initialDate:date,firstDate:DateTime(1900),lastDate:DateTime(2200));if(d!=null&&mounted) setState(()=>date=DateTime(d.year,d.month,d.day,date.hour,date.minute));}),
     TextFormField(controller:notes,decoration:const InputDecoration(labelText:'Notes (optional)'),maxLength:2000,maxLines:3),
     if(error!=null) Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),const SizedBox(height:24),FilledButton(onPressed:saving?null:save,child:Text(saving?'Saving…':'Save transaction')),
+    OutlinedButton.icon(onPressed:saving?null:()=>save(attach:true),icon:const Icon(Icons.attach_file),label:const Text('Save & manage bills')),
   ])));
 }
