@@ -9,6 +9,8 @@ Environment: Windows, Flutter 3.50.0 stable, Dart 3.14.0, Android SDK 37, bundle
 | flutter test (finance + SQLite) | Passed: 7 tests, 0 failed, 0 skipped |
 | flutter test test/widget_test.dart | Passed: 1 test, 0 failed, 0 skipped |
 | flutter build apk --release | Passed: app-release.apk generated, 47.4 MB |
+| Android apksigner verify --print-certs | Passed: Android Debug certificate (testing key) |
+| APK output metadata | com.rkc.expence, versionName 1.0.0, versionCode 1, minSdk 24 |
 | GitHub Actions | Not yet executed/verified |
 | Android device installation/runtime | Untested: no Android device connected |
 
@@ -19,3 +21,5 @@ No test was skipped in the completed runs. Eight tests passed across the two com
 Still untested or unimplemented: Android runtime/permissions/denials; physical-phone and tablet layouts; accessibility; Firebase login/rules/family sharing/emulator; reconnect and sync conflicts; backup/restore; PDF/Excel generation and sharing; recurring transactions; notifications; debt/goal workflows; receipts; widgets; SMS flow; production signing. See FEATURE_MATRIX.md.
 
 The APK is release-mode compiled but development-signed. It is a testing build, not a production Play Store release. APK compilation does not establish final acceptance.
+
+APK SHA-256: `76A3A120F813642E0ACB553A1314DA880990BA21885DF1336A1B94C801E8447C`.
