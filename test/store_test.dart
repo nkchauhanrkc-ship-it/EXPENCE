@@ -5,6 +5,26 @@ import 'package:expence/core/finance.dart';
 
 void main() {
   sqfliteFfiInit();
+  test('Budget migration preserves records and isolates months and categories',() async {
+    final db=await databaseFactoryFfi.openDatabase(inMemoryDatabasePath,
+      options:OpenDatabaseOptions(version:1,onCreate:FinanceStore.migrateV1));
+    addTearDown(db.close);
+    final store=FinanceStore(db);
+    final account=(await store.accounts()).first['id'] as String;
+    await store.save(Posting(id:'before-upgrade',kind:PostingKind.income,amount:12345,accountId:account,date:DateTime(2026,11,13)));
+    await FinanceStore.migrate(db,1,2);
+    expect((await store.ledger(db)).balance(account),12345);
+    expect(await store.budget(DateTime(2026,11)),3000000);
+    await store.setBudget(DateTime(2026,11),4500000);
+    expect(await store.budget(DateTime(2026,11,30)),4500000);
+    expect(await store.budget(DateTime(2026,12)),3000000);
+    final category=(await store.categoryList()).first['id'] as String;
+    await store.setBudget(DateTime(2026,11),200000,categoryId:category);
+    expect(await store.budget(DateTime(2026,11),categoryId:category),200000);
+    expect(await store.budget(DateTime(2026,11)),4500000);
+    await expectLater(store.setBudget(DateTime(2026,11),0),throwsArgumentError);
+    await expectLater(store.setBudget(DateTime(2026,11),100,categoryId:'missing'),throwsArgumentError);
+  });
   test('SQLite writes, updates, deletes and rejects invalid transfers atomically',() async {
     final db=await databaseFactoryFfi.openDatabase(inMemoryDatabasePath,
       options:OpenDatabaseOptions(version:1,onCreate:FinanceStore.migrateV1,

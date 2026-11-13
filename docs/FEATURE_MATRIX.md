@@ -11,7 +11,7 @@ Implemented means source exists; it does not imply device verification.
 | 3 Transactions | SQLite add/edit/delete, income/expense/transfer, amount/date/account/category/notes, simple search, delete confirmation | Automated checks in progress | Duplicate/template/recurring/split/refund UI, calculator, advanced filters, time picker, attachments |
 | 4 Categories | All approved built-in category names, stable category IDs | Automated checks in progress | Custom categories, subcategories, icons/colors, ordering/archiving/search picker |
 | 5 Accounts | Cash/Bank/Wallet, ledger-derived balances, transfers | Automated checks in progress | Create/edit/archive, opening balance UI, running balances/reconciliation/reports |
-| 6 Budgets | Default ₹30,000 progress | Pending | Editable/category budgets, threshold notifications/history/comparisons |
+| 6 Budgets | Default ₹30,000 progress; editable overall budget saved per month; category budget persistence API; v1-to-v2 migration | Migration, month/category isolation and validation passed | Category budget UI, threshold notifications, history/comparison UI |
 | 7 Debt | Exclusion of outgoing principal from expense totals in domain core only | Automated checks in progress | Complete lending/borrowing/interest/repayment UI and persistence |
 | 8 Savings | Allocation exclusion from spending/balance changes in domain core only | Automated checks in progress | Goals, withdrawals, contributions, account links, reminders/history |
 | 9 Calendar | None | Untested | Entire module |

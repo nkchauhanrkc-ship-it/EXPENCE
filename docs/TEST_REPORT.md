@@ -1,5 +1,9 @@
 # Validation evidence — initial development checkpoint
 
+## Budget development checkpoint
+
+The subsequent budget change passed `flutter analyze` and all 9 automated tests. Tests now cover the v1-to-v2 schema migration preserving an existing income record, independently stored monthly/category budgets, invalid budgets and unknown categories. The screen test also exercises monthly budget editing. The APK hash below identifies the earlier checkpoint; it does not represent the new budget code. GitHub CI for the earlier corrected workflow passed analysis and tests and was still building its APK when checked.
+
 Environment: Windows, Flutter 3.50.0 stable, Dart 3.14.0, Android SDK 37, bundled Android Studio Java 25.
 
 | Check | Actual result |

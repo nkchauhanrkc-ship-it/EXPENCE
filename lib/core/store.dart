@@ -9,9 +9,31 @@ class FinanceStore {
   final Database db;
   FinanceStore(this.db);
   static Future<FinanceStore> open() async => FinanceStore(await openDatabase(
-    p.join(await getDatabasesPath(),'rkc_expence.db'),version:1,
-    onConfigure:(db)=>db.execute('PRAGMA foreign_keys = ON'),onCreate:migrateV1,
-    onUpgrade:(db,old,next) async {throw StateError('Unsupported migration $old to $next');}));
+    p.join(await getDatabasesPath(),'rkc_expence.db'),version:2,
+    onConfigure:(db)=>db.execute('PRAGMA foreign_keys = ON'),
+    onCreate:(db,version) async {await migrateV1(db,1);await migrate(db,1,version);},
+    onUpgrade:migrate));
+
+  static Future<void> migrate(Database db,int old,int next) async {
+    if(old<2 && next>=2) {
+      await db.execute('CREATE TABLE budgets(month TEXT NOT NULL, category_id TEXT NOT NULL DEFAULT \'\', amount INTEGER NOT NULL CHECK(amount > 0), PRIMARY KEY(month,category_id))');
+    }
+  }
+  static String monthKey(DateTime month)=>'${month.year}-${month.month.toString().padLeft(2,'0')}';
+  Future<int> budget(DateTime month,{String categoryId=''}) async {
+    final rows=await db.query('budgets',where:'month = ? AND category_id = ?',whereArgs:[monthKey(month),categoryId]);
+    if(rows.isNotEmpty) return rows.first['amount'] as int;
+    if(categoryId.isNotEmpty) return 0;
+    final settings=await db.query('settings',where:'key = ?',whereArgs:['budget']);
+    return settings.isEmpty?3000000:int.parse(settings.first['value'] as String);
+  }
+  Future<void> setBudget(DateTime month,int amount,{String categoryId=''}) async {
+    if(amount<=0) throw ArgumentError('Budget must be positive.');
+    if(categoryId.isNotEmpty && (await db.query('categories',where:'id = ?',whereArgs:[categoryId])).isEmpty) {
+      throw ArgumentError('Unknown category.');
+    }
+    await db.insert('budgets',{'month':monthKey(month),'category_id':categoryId,'amount':amount},conflictAlgorithm:ConflictAlgorithm.replace);
+  }
 
   static Future<void> migrateV1(Database db, int version) async {
     await db.execute('CREATE TABLE accounts(id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, opening INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0)');

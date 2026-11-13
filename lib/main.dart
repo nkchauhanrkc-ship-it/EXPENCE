@@ -24,18 +24,37 @@ class _HomeState extends State<Home> {
   List<Map<String,Object?>> accounts=[],entries=[],cats=[];
   String? error;
   String search='';
+  int budget=3000000;
   @override void initState() {super.initState();store=widget.store;refresh();}
   Future<void> refresh() async {
     try {
       store ??= await FinanceStore.open();
       final a=await store!.accounts(),e=await store!.entries(),c=await store!.categoryList();
       final l=await store!.ledger(store!.db);
-      if(mounted) setState(() {accounts=a;entries=e;cats=c;ledger=l;error=null;});
+      final b=await store!.budget(DateTime.now());
+      if(mounted) setState(() {accounts=a;entries=e;cats=c;ledger=l;budget=b;error=null;});
     } catch(e) {if(mounted) setState(()=>error='$e');}
   }
   Future<void> edit([Map<String,Object?>? row]) async {
     await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EntryEditor(store:store!,accounts:accounts,categories:cats,row:row)));
     await refresh();
+  }
+  Future<void> editBudget() async {
+    final controller=TextEditingController(text:'${budget~/100}.${(budget%100).toString().padLeft(2,'0')}');
+    final key=GlobalKey<FormState>();
+    final value=await showDialog<int>(context:context,builder:(c)=>AlertDialog(
+      title:const Text('This month’s budget'),
+      content:Form(key:key,child:TextFormField(controller:controller,autofocus:true,
+        keyboardType:const TextInputType.numberWithOptions(decimal:true),
+        decoration:const InputDecoration(labelText:'Monthly limit (INR)'),
+        validator:(v){try{parseMinorUnits(v?.trim()??'');return null;}catch(_){return 'Enter a positive amount with up to 2 decimal places.';}})),
+      actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Cancel')),
+        FilledButton(onPressed:(){if(key.currentState!.validate()) Navigator.pop(c,parseMinorUnits(controller.text.trim()));},child:const Text('Save'))]));
+    // Dispose after the dialog route has completed its closing animation.
+    await Future<void>.delayed(const Duration(milliseconds:300));controller.dispose();
+    if(value==null) return;
+    try{await store!.setBudget(DateTime.now(),value);await refresh();}
+    catch(e){if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Could not save budget: $e')));}
   }
   Future<void> remove(Map<String,Object?> row) async {
     final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:const Text('Delete transaction?'),content:const Text('Your balances will be recalculated.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Delete'))]));
@@ -55,8 +74,9 @@ class _HomeState extends State<Home> {
         if(error!=null) Text('Unable to open local data: $error'),
         if(ledger==null && error==null) const LinearProgressIndicator(),
         Wrap(spacing:8,runSpacing:8,children:accounts.map((a)=>Chip(label:Text('${a['name']}  ${money(ledger?.balance(a['id'] as String)??0)}'))).toList()),
-        const SizedBox(height:20),Text('Monthly budget',style:Theme.of(context).textTheme.titleLarge),Text('${money(spending)} spent of ₹30,000.00'),
-        const SizedBox(height:8),LinearProgressIndicator(value:(spending/3000000).clamp(0,1)),Text('${money(3000000-spending)} remaining'),
+        const SizedBox(height:20),Text('Monthly budget',style:Theme.of(context).textTheme.titleLarge),Text('${money(spending)} spent of ${money(budget)}'),
+        Align(alignment:Alignment.centerLeft,child:TextButton.icon(onPressed:store==null?null:editBudget,icon:const Icon(Icons.edit_outlined),label:const Text('Edit monthly budget'))),
+        const SizedBox(height:8),LinearProgressIndicator(value:(spending/budget).clamp(0,1)),Text('${money(budget-spending)} remaining'),
         const SizedBox(height:24),Text('Transactions',style:Theme.of(context).textTheme.titleLarge),const SizedBox(height:12),
         TextField(decoration:const InputDecoration(prefixIcon:Icon(Icons.search),labelText:'Search notes or type',border:OutlineInputBorder()),onChanged:(v)=>setState(()=>search=v.toLowerCase())),
         if(entries.isEmpty) const Padding(padding:EdgeInsets.symmetric(vertical:40),child:Text('No transactions yet. Add your first income or expense.')),
