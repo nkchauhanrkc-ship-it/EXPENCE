@@ -7,6 +7,10 @@ import 'package:expence/main.dart';
 void main() {
   sqfliteFfiInit();
   testWidgets('Enter income and edit it with persistent balances', (tester) async {
+    tester.view.physicalSize=const Size(1000,1600);
+    tester.view.devicePixelRatio=1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final db=await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath,
       options:OpenDatabaseOptions(version:1,onCreate:FinanceStore.migrateV1));
     addTearDown(db.close);
@@ -36,6 +40,27 @@ void main() {
     await tester.pump(const Duration(milliseconds:350));await tester.pumpAndSettle();
     expect(await FinanceStore(db).budget(DateTime.now()),4500075);
     expect(find.text('₹0.00 spent of ₹45000.75'),findsOneWidget);
+    await tester.ensureVisible(find.text('Manage accounts'));
+    await tester.tap(find.text('Manage accounts'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Add account'));await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first,'Travel cash');
+    await tester.enterText(find.byType(TextFormField).last,'50.25');
+    await tester.tap(find.text('Save'));await tester.pumpAndSettle();
+    expect(find.text('Travel cash'),findsOneWidget);
+    await tester.pageBack();await tester.pumpAndSettle();
+    expect(find.text('₹150.25'),findsOneWidget);
+    await tester.tap(find.text('Manage categories'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Add category'));await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField),'Book club');
+    await tester.tap(find.text('Save'));await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField),'Book club');await tester.pumpAndSettle();
+    expect(find.text('Book club'),findsWidgets);
+    await tester.tap(find.byTooltip('Archive'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));await tester.pumpAndSettle();
+    expect(find.text('Category · Archived'),findsOneWidget);
+    await tester.tap(find.byTooltip('Restore'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));await tester.pumpAndSettle();
+    expect(find.text('Category · Archived'),findsNothing);
     expect(tester.takeException(),isNull);
   });
 }

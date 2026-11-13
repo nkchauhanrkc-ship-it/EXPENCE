@@ -1,5 +1,11 @@
 # Validation evidence — initial development checkpoint
 
+## Account and category management checkpoint
+
+All 10 automated tests passed after adding account/category management. Analysis passed with no issues. The interaction test now creates an account with an opening balance, confirms the dashboard total, creates a category, searches for it, archives it and restores it. Repository tests verify renamed records retain IDs, opening balances recalculate correctly, archives preserve financial history, new transactions reject archived references, old entries remain editable and restore permits new use. An earlier screen-test failure was caused by its empty-state assertion falling outside the lazy list viewport; the final test uses an explicit larger viewport. Phone/tablet accessibility testing is still pending.
+
+The earlier CI run 43356454015 succeeded, including APK build and artifact upload. This does not verify the newest management checkpoint's CI run.
+
 ## Budget development checkpoint
 
 The subsequent budget change passed `flutter analyze` and all 9 automated tests. Tests now cover the v1-to-v2 schema migration preserving an existing income record, independently stored monthly/category budgets, invalid budgets and unknown categories. The screen test also exercises monthly budget editing. The APK hash below identifies the earlier checkpoint; it does not represent the new budget code. GitHub CI for the earlier corrected workflow passed analysis and tests and was still building its APK when checked.

@@ -50,7 +50,25 @@ class FinanceStore {
     }
   }
   Future<List<Map<String,Object?>>> accounts()=>db.query('accounts',orderBy:'name');
-  Future<List<Map<String,Object?>>> categoryList()=>db.query('categories',where:'archived = 0',orderBy:'name');
+  Future<List<Map<String,Object?>>> categoryList({bool includeArchived=false})=>db.query('categories',where:includeArchived?null:'archived = 0',orderBy:'name');
+  Future<String> saveAccount({String? id,required String name,required String kind,required int opening}) async {
+    if(name.trim().isEmpty || name.trim().length>100 || !['Cash','Bank','Wallet'].contains(kind) || opening.abs()>9007199254740991) throw ArgumentError('Enter a valid account name, type and opening balance.');
+    final key=id??const Uuid().v4();
+    final row={'name':name.trim(),'kind':kind,'opening':opening};
+    if(id==null) {await db.insert('accounts',{'id':key,...row});}
+    else if(await db.update('accounts',row,where:'id = ?',whereArgs:[id])!=1) {throw ArgumentError('Account not found.');}
+    return key;
+  }
+  Future<String> saveCategory({String? id,required String name}) async {
+    if(name.trim().isEmpty || name.trim().length>100) throw ArgumentError('Enter a category name of 1–100 characters.');
+    final key=id??const Uuid().v4();
+    if(id==null) {await db.insert('categories',{'id':key,'name':name.trim()});}
+    else if(await db.update('categories',{'name':name.trim()},where:'id = ?',whereArgs:[id])!=1) {throw ArgumentError('Category not found.');}
+    return key;
+  }
+  Future<void> archive({required bool account,required String id,required bool archived}) async {
+    if(await db.update(account?'accounts':'categories',{'archived':archived?1:0},where:'id = ?',whereArgs:[id])!=1) throw ArgumentError('Record not found.');
+  }
   Future<List<Map<String,Object?>>> entries()=>db.query('entries',orderBy:'date DESC, created_at DESC');
   static Posting posting(Map<String,Object?> r)=>Posting(id:r['id'] as String,
     kind:PostingKind.values.byName(r['kind'] as String),amount:r['amount'] as int,
@@ -67,6 +85,12 @@ class FinanceStore {
   Future<void> save(Posting entry,{String? categoryId,String notes=''})=>db.transaction((txn) async {
     (await ledger(txn)).put(entry);
     final previous=await txn.query('entries',where:'id = ?',whereArgs:[entry.id]);
+    final old=previous.isEmpty?<String,Object?>{}:previous.first;
+    for(final pair in [('accounts',entry.accountId,old['account_id']),('accounts',entry.destinationId,old['destination_id']),('categories',categoryId,old['category_id'])]) {
+      if(pair.$2==null) continue;
+      final matches=await txn.query(pair.$1,where:'id = ?',whereArgs:[pair.$2]);
+      if(matches.isEmpty || (matches.first['archived']==1 && pair.$2!=pair.$3)) throw ArgumentError('Choose an active account or category.');
+    }
     final now=DateTime.now().toUtc().toIso8601String();
     final row={'id':entry.id,'kind':entry.kind.name,'amount':entry.amount,
       'account_id':entry.accountId,'destination_id':entry.destinationId,'original_id':entry.originalId,

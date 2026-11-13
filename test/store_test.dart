@@ -5,6 +5,29 @@ import 'package:expence/core/finance.dart';
 
 void main() {
   sqfliteFfiInit();
+  test('Account/category management preserves history and rejects new archived use',() async {
+    final db=await databaseFactoryFfi.openDatabase(inMemoryDatabasePath,options:OpenDatabaseOptions(version:1,onCreate:FinanceStore.migrateV1));
+    addTearDown(db.close);final store=FinanceStore(db);
+    final account=await store.saveAccount(name:'Savings bank',kind:'Bank',opening:100000);
+    final category=await store.saveCategory(name:'Books');
+    Posting entry(String id)=>Posting(id:id,kind:PostingKind.expense,amount:2500,accountId:account,date:DateTime(2026,11,13));
+    await store.save(entry('old'),categoryId:category);
+    await store.saveAccount(id:account,name:'Renamed bank',kind:'Bank',opening:200000);
+    await store.saveCategory(id:category,name:'Reading');
+    expect((await store.ledger(db)).balance(account),197500);
+    await store.archive(account:true,id:account,archived:true);
+    await store.archive(account:false,id:category,archived:true);
+    expect((await store.entries()).single['category_id'],category);
+    expect((await store.categoryList()).any((c)=>c['id']==category),false);
+    await expectLater(store.save(entry('new'),categoryId:category),throwsArgumentError);
+    await store.save(entry('old'),categoryId:category,notes:'History remains editable');
+    expect((await store.ledger(db)).balance(account),197500);
+    await store.archive(account:true,id:account,archived:false);
+    await store.archive(account:false,id:category,archived:false);
+    await store.save(entry('new'),categoryId:category);
+    expect((await store.ledger(db)).balance(account),195000);
+    await expectLater(store.saveAccount(name:'',kind:'Bank',opening:0),throwsArgumentError);
+  });
   test('Budget migration preserves records and isolates months and categories',() async {
     final db=await databaseFactoryFfi.openDatabase(inMemoryDatabasePath,
       options:OpenDatabaseOptions(version:1,onCreate:FinanceStore.migrateV1));

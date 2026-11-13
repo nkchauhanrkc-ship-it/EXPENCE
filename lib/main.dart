@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
 import 'core/finance.dart';
 import 'core/store.dart';
+import 'management.dart';
 
 void main() { WidgetsFlutterBinding.ensureInitialized(); runApp(const ExpenceApp()); }
 String money(int n)=>'${n<0?'-':''}₹${n.abs()~/100}.${(n.abs()%100).toString().padLeft(2,'0')}';
@@ -29,14 +30,20 @@ class _HomeState extends State<Home> {
   Future<void> refresh() async {
     try {
       store ??= await FinanceStore.open();
-      final a=await store!.accounts(),e=await store!.entries(),c=await store!.categoryList();
+      final a=await store!.accounts(),e=await store!.entries(),c=await store!.categoryList(includeArchived:true);
       final l=await store!.ledger(store!.db);
       final b=await store!.budget(DateTime.now());
       if(mounted) setState(() {accounts=a;entries=e;cats=c;ledger=l;budget=b;error=null;});
     } catch(e) {if(mounted) setState(()=>error='$e');}
   }
   Future<void> edit([Map<String,Object?>? row]) async {
-    await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EntryEditor(store:store!,accounts:accounts,categories:cats,row:row)));
+    final available=accounts.where((a)=>a['archived']==0 || a['id']==row?['account_id'] || a['id']==row?['destination_id']).toList();
+    if(available.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Create or restore an account first.')));return;}
+    await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EntryEditor(store:store!,accounts:available,categories:cats.where((c)=>c['archived']==0 || c['id']==row?['category_id']).toList(),row:row)));
+    await refresh();
+  }
+  Future<void> manage(bool accounts) async {
+    await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>ManagementPage(store:store!,accounts:accounts)));
     await refresh();
   }
   Future<void> editBudget() async {
@@ -73,6 +80,7 @@ class _HomeState extends State<Home> {
         Card(color:Theme.of(context).colorScheme.primaryContainer,child:Padding(padding:const EdgeInsets.all(24),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Available balance'),Text(money(total),style:Theme.of(context).textTheme.headlineLarge),const SizedBox(height:12),const Text('On this device • Offline mode')]))),
         if(error!=null) Text('Unable to open local data: $error'),
         if(ledger==null && error==null) const LinearProgressIndicator(),
+        Wrap(spacing:8,children:[OutlinedButton(onPressed:store==null?null:()=>manage(true),child:const Text('Manage accounts')),OutlinedButton(onPressed:store==null?null:()=>manage(false),child:const Text('Manage categories'))]),
         Wrap(spacing:8,runSpacing:8,children:accounts.map((a)=>Chip(label:Text('${a['name']}  ${money(ledger?.balance(a['id'] as String)??0)}'))).toList()),
         const SizedBox(height:20),Text('Monthly budget',style:Theme.of(context).textTheme.titleLarge),Text('${money(spending)} spent of ${money(budget)}'),
         Align(alignment:Alignment.centerLeft,child:TextButton.icon(onPressed:store==null?null:editBudget,icon:const Icon(Icons.edit_outlined),label:const Text('Edit monthly budget'))),
